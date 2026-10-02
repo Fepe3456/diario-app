@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sezione — Il mio diario</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="contenitore">
+
+    <div class="barra-superiore">
+      <a class="link-indietro" href="home.html">‹ Home</a>
+    </div>
+
+    <h1 class="titolo-sezione">
+      <span class="pallino" aria-hidden="true"></span>
+      <span id="nome-sezione-titolo">Sezione</span>
+    </h1>
+
+    <div class="sotto-tab">
+      <button id="tab-attivita" class="attivo">Attività</button>
+      <button id="tab-note">Note</button>
+    </div>
+
+    <!-- ===================== PANNELLO ATTIVITÀ ===================== -->
+    <section id="pannello-attivita">
+
+      <div class="barra-azioni">
+        <button id="btn-nuova-attivita" class="pulsante-nuovo">+ Nuova attività</button>
+        <div class="selettore-vista">
+          <button id="btn-vista-elenco" class="attivo" title="Elenco" aria-label="Vista elenco">☰</button>
+          <button id="btn-vista-calendario" title="Calendario" aria-label="Vista calendario">▦</button>
+        </div>
+      </div>
+
+      <div id="vista-elenco-attivita" class="elenco"></div>
+
+      <div id="vista-calendario-attivita" hidden>
+        <div class="calendario-intestazione">
+          <button id="mese-precedente" aria-label="Mese precedente">‹</button>
+          <strong id="etichetta-mese"></strong>
+          <button id="mese-successivo" aria-label="Mese successivo">›</button>
+        </div>
+        <div class="griglia-giorni-settimana">
+          <div>LUN</div><div>MAR</div><div>MER</div><div>GIO</div>
+          <div>VEN</div><div>SAB</div><div>DOM</div>
+        </div>
+        <div id="griglia-calendario" class="griglia-calendario"></div>
+      </div>
+
+    </section>
+
+    <!-- ===================== PANNELLO NOTE ===================== -->
+    <section id="pannello-note" hidden>
+
+      <div class="barra-azioni">
+        <button id="btn-nuova-nota" class="pulsante-nuovo">+ Nuova nota</button>
+      </div>
+
+      <div id="vista-elenco-note" class="griglia-note"></div>
+
+    </section>
+
+  </div>
+
+  <!-- ===================== MODALE POST-IT: ATTIVITÀ ===================== -->
+  <div id="sfondo-modale-attivita" class="sfondo-modale" hidden>
+    <div class="postit">
+      <div class="postit-azioni">
+        <button id="btn-modifica-attivita" title="Modifica" aria-label="Modifica">✏️</button>
+        <button id="btn-chiudi-attivita" title="Chiudi" aria-label="Chiudi">✕</button>
+      </div>
+
+      <!-- Modalità visualizzazione -->
+      <div id="vista-dettaglio-attivita">
+        <h3 id="dettaglio-attivita-titolo"></h3>
+        <div class="riga-dettaglio">
+          <span class="etichetta">Data</span>
+          <span id="dettaglio-attivita-data"></span>
+        </div>
+        <div class="riga-dettaglio" id="riga-dettaglio-ora">
+          <span class="etichetta">Orario</span>
+          <span id="dettaglio-attivita-ora"></span>
+        </div>
+        <div class="riga-dettaglio">
+          <span class="etichetta">Note</span>
+          <p id="dettaglio-attivita-note"></p>
+        </div>
+      </div>
+
+      <!-- Modalità modifica / creazione -->
+      <form id="form-attivita" class="modifica-dettaglio" hidden>
+        <h3 id="form-attivita-intestazione">Nuova attività</h3>
+
+        <label for="input-attivita-titolo">Titolo</label>
+        <input id="input-attivita-titolo" type="text" required>
+
+        <label for="input-attivita-data">Data</label>
+        <input id="input-attivita-data" type="date" required>
+
+        <label for="input-attivita-ora">Orario (facoltativo)</label>
+        <input id="input-attivita-ora" type="time">
+
+        <label for="input-attivita-note">Note</label>
+        <textarea id="input-attivita-note"></textarea>
+
+        <button type="submit" class="salva">Salva attività</button>
+        <button type="button" id="btn-elimina-attivita" hidden
+                style="margin-top:10px; color:#8B5E83; font-size:0.85rem;">
+          Elimina attività
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODALE POST-IT: NOTA ===================== -->
+  <div id="sfondo-modale-nota" class="sfondo-modale" hidden>
+    <div class="postit">
+      <div class="postit-azioni">
+        <button id="btn-modifica-nota" title="Modifica" aria-label="Modifica">✏️</button>
+        <button id="btn-chiudi-nota" title="Chiudi" aria-label="Chiudi">✕</button>
+      </div>
+
+      <!-- Modalità visualizzazione -->
+      <div id="vista-dettaglio-nota">
+        <h3 id="dettaglio-nota-titolo"></h3>
+        <div class="riga-dettaglio">
+          <p id="dettaglio-nota-contenuto" style="white-space: pre-wrap;"></p>
+        </div>
+      </div>
+
+      <!-- Modalità modifica / creazione -->
+      <form id="form-nota" class="modifica-dettaglio" hidden>
+        <h3 id="form-nota-intestazione">Nuova nota</h3>
+
+        <label for="input-nota-titolo">Titolo</label>
+        <input id="input-nota-titolo" type="text" required>
+
+        <label for="input-nota-contenuto">Contenuto</label>
+        <textarea id="input-nota-contenuto" style="min-height: 140px;"></textarea>
+
+        <button type="submit" class="salva">Salva nota</button>
+        <button type="button" id="btn-elimina-nota" hidden
+                style="margin-top:10px; color:#8B5E83; font-size:0.85rem;">
+          Elimina nota
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="storage.js"></script>
+  <script src="sezione.js"></script>
+</body>
+</html>

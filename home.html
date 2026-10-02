@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Il mio diario</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="contenitore">
+    <header class="home-intestazione">
+      <p class="occhiello" id="data-odierna"></p>
+      <h1>Il mio diario</h1>
+    </header>
+
+    <nav class="linguette">
+      <a class="linguetta scuola" href="sezione.html?nome=scuola">
+        <span class="nome-sezione">Scuola</span>
+        <span class="freccia" aria-hidden="true">›</span>
+      </a>
+      <a class="linguetta personale" href="sezione.html?nome=personale">
+        <span class="nome-sezione">Personale</span>
+        <span class="freccia" aria-hidden="true">›</span>
+      </a>
+    </nav>
+  </div>
+
+  <script>
+    // Mostriamo la data di oggi in italiano come piccolo tocco di benvenuto
+    const oggi = new Date();
+    const formattata = oggi.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+    document.getElementById('data-odierna').textContent =
+      formattata.charAt(0).toUpperCase() + formattata.slice(1);
+  </script>
+</body>
+</html>

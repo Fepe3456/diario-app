@@ -1,0 +1,480 @@
+/* =========================================================
+   TOKEN — palette, font e misure di base, riusati ovunque
+   ========================================================= */
+:root {
+  --color-paper: #F3F1EA;
+  --color-paper-alt: #EAE5D6;
+  --color-ink: #262F28;
+  --color-ink-soft: #5B6359;
+  --color-rule: #D9D2C0;
+
+  --color-scuola: #2F6F6B;
+  --color-scuola-soft: #E3EEEC;
+  --color-personale: #8B5E83;
+  --color-personale-soft: #F1E7EF;
+  --color-accent: #C9A227;
+  --color-white: #FFFFFF;
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  --shadow-paper: 0 3px 10px rgba(38, 47, 40, 0.14);
+  --shadow-postit: 0 10px 30px rgba(38, 47, 40, 0.28);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  min-height: 100vh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; }
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.contenitore {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+/* =========================================================
+   HOME — titolo + linguette grandi verso le sezioni
+   ========================================================= */
+
+.home-intestazione {
+  margin-bottom: 40px;
+}
+
+.home-intestazione .occhiello {
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.home-intestazione h1 {
+  font-size: 2.2rem;
+}
+
+.linguette {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.linguetta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 28px;
+  border-radius: 10px 28px 28px 10px;
+  box-shadow: var(--shadow-paper);
+  transition: transform 0.15s ease;
+}
+
+.linguetta:hover,
+.linguetta:focus-visible {
+  transform: translateX(4px);
+}
+
+.linguetta.scuola { background: var(--color-scuola-soft); border-left: 8px solid var(--color-scuola); }
+.linguetta.personale { background: var(--color-personale-soft); border-left: 8px solid var(--color-personale); }
+
+.linguetta .nome-sezione {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.linguetta .freccia {
+  font-size: 1.4rem;
+  color: var(--color-ink-soft);
+}
+
+/* =========================================================
+   SEZIONE — intestazione, sotto-tab, barra azioni
+   ========================================================= */
+
+.barra-superiore {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.link-indietro {
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+}
+
+.titolo-sezione {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.titolo-sezione .pallino {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+body.tema-scuola .pallino { background: var(--color-scuola); }
+body.tema-personale .pallino { background: var(--color-personale); }
+
+body.tema-scuola .accento { color: var(--color-scuola); }
+body.tema-personale .accento { color: var(--color-personale); }
+
+.sotto-tab {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-rule);
+  margin-bottom: 20px;
+}
+
+.sotto-tab button {
+  padding: 10px 4px;
+  margin-right: 24px;
+  font-size: 1rem;
+  color: var(--color-ink-soft);
+  border-bottom: 2px solid transparent;
+}
+
+.sotto-tab button.attivo {
+  color: var(--color-ink);
+  border-bottom-color: currentColor;
+  font-weight: 600;
+}
+
+body.tema-scuola .sotto-tab button.attivo { border-bottom-color: var(--color-scuola); }
+body.tema-personale .sotto-tab button.attivo { border-bottom-color: var(--color-personale); }
+
+.barra-azioni {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pulsante-nuovo {
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 20px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+body.tema-scuola .pulsante-nuovo { background: var(--color-scuola); }
+body.tema-personale .pulsante-nuovo { background: var(--color-personale); }
+
+.selettore-vista {
+  display: flex;
+  gap: 2px;
+  background: var(--color-paper-alt);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.selettore-vista button {
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.selettore-vista button.attivo {
+  background: var(--color-white);
+  box-shadow: var(--shadow-paper);
+}
+
+/* ---- Vista elenco (attività e note) ---- */
+
+.elenco { display: flex; flex-direction: column; }
+
+.riga-elemento {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 6px;
+  border-bottom: 1px solid var(--color-rule);
+  text-align: left;
+  width: 100%;
+}
+
+.riga-elemento .data-riga {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+  min-width: 64px;
+}
+
+.riga-elemento .titolo-riga {
+  flex: 1;
+  font-weight: 500;
+}
+
+.riga-elemento .estratto-riga {
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+}
+
+.riga-elemento { cursor: pointer; }
+
+.riga-elemento .azioni-riga {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.riga-elemento .icona-azione {
+  font-size: 0.95rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  opacity: 0.75;
+}
+
+.riga-elemento .icona-azione:hover,
+.riga-elemento .icona-azione:focus-visible {
+  opacity: 1;
+  background: var(--color-paper-alt);
+}
+
+.griglia-note {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.card-nota {
+  text-align: left;
+  background: var(--color-paper-alt);
+  border-radius: 3px;
+  padding: 16px;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-paper);
+  transition: transform 0.15s ease;
+}
+
+body.tema-scuola .card-nota { background: var(--color-scuola-soft); }
+body.tema-personale .card-nota { background: var(--color-personale-soft); }
+
+.card-nota:nth-child(odd) { transform: rotate(-1.2deg); }
+.card-nota:nth-child(even) { transform: rotate(1deg); }
+
+.card-nota:hover,
+.card-nota:focus-visible {
+  transform: rotate(0deg) translateY(-2px);
+}
+
+.titolo-card-nota {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.anteprima-card-nota {
+  font-size: 0.85rem;
+  color: var(--color-ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.messaggio-vuoto {
+  color: var(--color-ink-soft);
+  padding: 24px 6px;
+  font-style: italic;
+  grid-column: 1 / -1;
+}
+
+/* ---- Vista calendario ---- */
+
+.calendario-intestazione {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.calendario-intestazione button {
+  font-size: 1.2rem;
+  padding: 4px 10px;
+}
+
+.griglia-giorni-settimana,
+.griglia-calendario {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--color-rule);
+}
+
+.griglia-giorni-settimana {
+  margin-bottom: 1px;
+}
+
+.griglia-giorni-settimana div {
+  background: var(--color-paper-alt);
+  padding: 6px 4px;
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--color-ink-soft);
+}
+
+.cella-giorno {
+  background: var(--color-white);
+  min-height: 86px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cella-giorno.vuota { background: var(--color-paper); }
+
+.numero-giorno {
+  align-self: flex-end;
+  font-size: 0.75rem;
+  color: var(--color-ink-soft);
+}
+
+.chip-attivita {
+  font-size: 0.72rem;
+  background: var(--color-paper-alt);
+  border-radius: 5px;
+  padding: 2px 5px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.tema-scuola .chip-attivita { background: var(--color-scuola-soft); }
+body.tema-personale .chip-attivita { background: var(--color-personale-soft); }
+
+/* =========================================================
+   POST-IT — il modale di dettaglio/modifica
+   ========================================================= */
+
+.sfondo-modale {
+  position: fixed;
+  inset: 0;
+  background: rgba(38, 47, 40, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.sfondo-modale[hidden] { display: none; }
+
+.postit {
+  background: var(--color-white);
+  width: 100%;
+  max-width: 420px;
+  border-radius: 4px 16px 16px 4px;
+  box-shadow: var(--shadow-postit);
+  padding: 24px;
+  transform: rotate(-0.6deg);
+  position: relative;
+}
+
+body.tema-scuola .postit { border-left: 10px solid var(--color-scuola); }
+body.tema-personale .postit { border-left: 10px solid var(--color-personale); }
+
+.postit-azioni {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  gap: 10px;
+}
+
+.postit-azioni button { font-size: 1.1rem; color: var(--color-ink-soft); }
+
+.postit h3 { font-size: 1.3rem; padding-right: 50px; margin-bottom: 12px; }
+
+.postit .riga-dettaglio {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+}
+
+.postit .riga-dettaglio .etichetta {
+  color: var(--color-ink-soft);
+  font-size: 0.78rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.postit label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+  margin-bottom: 4px;
+  margin-top: 14px;
+}
+
+.postit input,
+.postit textarea,
+.postit select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-rule);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  background: var(--color-paper);
+}
+
+.postit textarea { min-height: 90px; resize: vertical; }
+
+.postit .salva {
+  margin-top: 18px;
+  padding: 10px 18px;
+  border-radius: 20px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-weight: 600;
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .cella-giorno { min-height: 58px; }
+  .numero-giorno { font-size: 0.7rem; }
+  .chip-attivita { font-size: 0.65rem; }
+  .linguetta { padding: 20px; }
+}
