@@ -23,6 +23,7 @@
 
     <div class="sotto-tab">
       <button id="tab-attivita" class="attivo">Attività</button>
+      <button id="tab-eventi">Eventi</button>
       <button id="tab-note">Note</button>
     </div>
 
@@ -54,6 +55,17 @@
 
     </section>
 
+    <!-- ===================== PANNELLO EVENTI ===================== -->
+    <section id="pannello-eventi" hidden>
+
+      <div class="barra-azioni">
+        <button id="btn-nuovo-evento" class="pulsante-nuovo">+ Nuovo evento</button>
+      </div>
+
+      <div id="vista-eventi"></div>
+
+    </section>
+
     <!-- ===================== PANNELLO NOTE ===================== -->
     <section id="pannello-note" hidden>
 
@@ -67,7 +79,7 @@
 
   </div>
 
-  <!-- ===================== MODALE POST-IT: ATTIVITÀ ===================== -->
+  <!-- ===================== MODALE POST-IT: ATTIVITÀ / EVENTO ===================== -->
   <div id="sfondo-modale-attivita" class="sfondo-modale" hidden>
     <div class="postit">
       <div class="postit-azioni">
@@ -77,19 +89,25 @@
 
       <!-- Modalità visualizzazione -->
       <div id="vista-dettaglio-attivita">
+        <span class="badge-tipo" id="dettaglio-attivita-tipo"></span>
         <h3 id="dettaglio-attivita-titolo"></h3>
         <div class="riga-dettaglio">
-          <span class="etichetta">Data</span>
+          <span class="etichetta" id="dettaglio-attivita-etichetta-data">Data</span>
           <span id="dettaglio-attivita-data"></span>
         </div>
         <div class="riga-dettaglio" id="riga-dettaglio-ora">
           <span class="etichetta">Orario</span>
           <span id="dettaglio-attivita-ora"></span>
         </div>
+        <div class="riga-dettaglio" id="riga-dettaglio-materia">
+          <span class="etichetta">Materia</span>
+          <span id="dettaglio-attivita-materia"></span>
+        </div>
         <div class="riga-dettaglio">
           <span class="etichetta">Note</span>
           <p id="dettaglio-attivita-note"></p>
         </div>
+        <button type="button" id="btn-toggle-stato" class="pulsante-stato" hidden></button>
       </div>
 
       <!-- Modalità modifica / creazione -->
@@ -99,19 +117,29 @@
         <label for="input-attivita-titolo">Titolo</label>
         <input id="input-attivita-titolo" type="text" required>
 
-        <label for="input-attivita-data">Data</label>
+        <label for="input-attivita-data" id="label-attivita-data">Data</label>
         <input id="input-attivita-data" type="date" required>
+
+        <div id="gruppo-data-fine" hidden>
+          <label for="input-attivita-data-fine">Data di fine</label>
+          <input id="input-attivita-data-fine" type="date">
+        </div>
 
         <label for="input-attivita-ora">Orario (facoltativo)</label>
         <input id="input-attivita-ora" type="time">
 
+        <div id="gruppo-materia" hidden>
+          <label for="input-attivita-materia">Materia (facoltativa)</label>
+          <select id="input-attivita-materia"></select>
+        </div>
+
         <label for="input-attivita-note">Note</label>
         <textarea id="input-attivita-note"></textarea>
 
-        <button type="submit" class="salva">Salva attività</button>
+        <button type="submit" class="salva" id="btn-salva-attivita">Salva attività</button>
         <button type="button" id="btn-elimina-attivita" hidden
                 style="margin-top:10px; color:#8B5E83; font-size:0.85rem;">
-          Elimina attività
+          Elimina
         </button>
       </form>
     </div>

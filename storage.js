@@ -40,15 +40,38 @@ function scriviTutte(chiave, lista) {
 
 /* ---------- ATTIVITÀ ---------- */
 
-// Restituisce le attività di una sezione, ordinate per data (e ora)
+/*
+  Ogni voce salvata in diario_attivita ha questi campi:
+    tipo      'attivita' | 'evento'
+    data      per un'attività è la scadenza; per un evento è il giorno di inizio
+    dataFine  solo eventi: ultimo giorno dell'evento (>= data)
+    stato     solo attività: 'da_svolgere' | 'svolta'
+    materia   facoltativa, usata solo nella sezione Scuola
+  Le voci create prima di questa versione non hanno tipo/stato: le
+  completiamo qui in lettura, così continuano a funzionare senza migrazioni.
+*/
+function normalizzaVoce(v) {
+  const tipo = v.tipo === 'evento' ? 'evento' : 'attivita';
+  const voce = Object.assign({}, v, { tipo });
+  if (tipo === 'evento') {
+    voce.dataFine = v.dataFine && v.dataFine >= v.data ? v.dataFine : v.data;
+  } else {
+    voce.stato = v.stato === 'svolta' ? 'svolta' : 'da_svolgere';
+  }
+  return voce;
+}
+
+// Restituisce tutte le voci (attività ed eventi) di una sezione, ordinate per data (e ora)
 function getAttivita(sezione) {
   return leggiTutte(CHIAVE_ATTIVITA)
     .filter(a => a.sezione === sezione)
+    .map(normalizzaVoce)
     .sort((a, b) => (a.data + (a.ora || '')).localeCompare(b.data + (b.ora || '')));
 }
 
 function getAttivitaPerId(id) {
-  return leggiTutte(CHIAVE_ATTIVITA).find(a => a.id === id) || null;
+  const trovata = leggiTutte(CHIAVE_ATTIVITA).find(a => a.id === id);
+  return trovata ? normalizzaVoce(trovata) : null;
 }
 
 // Se l'oggetto ha già un id, aggiorna quella attività; altrimenti ne crea una nuova

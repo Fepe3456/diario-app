@@ -245,7 +245,62 @@ body.tema-personale .pulsante-nuovo { background: var(--color-personale); }
   font-size: 0.9rem;
 }
 
+.riga-elemento .data-riga-larga { min-width: 112px; }
+
 .riga-elemento { cursor: pointer; }
+
+/* Attività svolta: resta in elenco ma barrata e attenuata */
+.riga-elemento.svolta .titolo-riga,
+.riga-elemento.svolta .data-riga {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.check-stato {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-ink-soft);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--color-white);
+}
+
+.check-stato.spuntata { border-color: transparent; }
+body.tema-scuola .check-stato.spuntata { background: var(--color-scuola); }
+body.tema-personale .check-stato.spuntata { background: var(--color-personale); }
+
+.tag-materia {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: var(--color-paper-alt);
+  color: var(--color-ink-soft);
+  vertical-align: 1px;
+}
+
+/* ---- Tab Eventi: gruppi In corso / Futuri / Passati ---- */
+
+.titolo-gruppo {
+  font-size: 1.05rem;
+  margin: 20px 0 4px;
+}
+.titolo-gruppo:first-child { margin-top: 0; }
+
+.gruppo-passati { margin-top: 24px; }
+.gruppo-passati summary {
+  cursor: pointer;
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+  padding: 6px 0;
+}
 
 .riga-elemento .azioni-riga {
   display: flex;
@@ -334,7 +389,10 @@ body.tema-personale .card-nota { background: var(--color-personale-soft); }
 .griglia-giorni-settimana,
 .griglia-calendario {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  /* minmax(0, 1fr) e non 1fr: con "1fr" una colonna non può restringersi sotto la
+     larghezza del suo contenuto, quindi un titolo lungo allargava la sua colonna.
+     Con minmax(0, 1fr) le 7 colonne restano sempre uguali. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 1px;
   background: var(--color-rule);
 }
@@ -354,6 +412,7 @@ body.tema-personale .card-nota { background: var(--color-personale-soft); }
 .cella-giorno {
   background: var(--color-white);
   min-height: 86px;
+  min-width: 0;
   padding: 4px;
   display: flex;
   flex-direction: column;
@@ -362,6 +421,12 @@ body.tema-personale .card-nota { background: var(--color-personale-soft); }
 
 .cella-giorno.vuota { background: var(--color-paper); }
 
+.cella-giorno.oggi { background: #FBF6DF; }
+.cella-giorno.oggi .numero-giorno {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
 .numero-giorno {
   align-self: flex-end;
   font-size: 0.75rem;
@@ -369,6 +434,9 @@ body.tema-personale .card-nota { background: var(--color-personale-soft); }
 }
 
 .chip-attivita {
+  display: block;
+  width: 100%;
+  min-width: 0;
   font-size: 0.72rem;
   background: var(--color-paper-alt);
   border-radius: 5px;
@@ -381,6 +449,19 @@ body.tema-personale .card-nota { background: var(--color-personale-soft); }
 
 body.tema-scuola .chip-attivita { background: var(--color-scuola-soft); }
 body.tema-personale .chip-attivita { background: var(--color-personale-soft); }
+
+/* Gli eventi si distinguono dalle attività: tinta piena e barra a sinistra */
+.chip-evento {
+  color: var(--color-white);
+  font-weight: 500;
+}
+body.tema-scuola .chip-evento { background: var(--color-scuola); }
+body.tema-personale .chip-evento { background: var(--color-personale); }
+
+.chip-attivita.svolta {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
 
 /* =========================================================
    POST-IT — il modale di dettaglio/modifica
@@ -408,6 +489,8 @@ body.tema-personale .chip-attivita { background: var(--color-personale-soft); }
   padding: 24px;
   transform: rotate(-0.6deg);
   position: relative;
+  max-height: 90vh;
+  overflow-y: auto; /* il form di un evento è alto: su telefono deve poter scorrere */
 }
 
 body.tema-scuola .postit { border-left: 10px solid var(--color-scuola); }
@@ -424,6 +507,29 @@ body.tema-personale .postit { border-left: 10px solid var(--color-personale); }
 .postit-azioni button { font-size: 1.1rem; color: var(--color-ink-soft); }
 
 .postit h3 { font-size: 1.3rem; padding-right: 50px; margin-bottom: 12px; }
+
+.badge-tipo {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+body.tema-scuola .badge-tipo { color: var(--color-scuola); }
+body.tema-personale .badge-tipo { color: var(--color-personale); }
+
+.pulsante-stato {
+  margin-top: 14px;
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1.5px solid currentColor;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.pulsante-stato[hidden] { display: none; }
+body.tema-scuola .pulsante-stato { color: var(--color-scuola); }
+body.tema-personale .pulsante-stato { color: var(--color-personale); }
 
 .postit .riga-dettaglio {
   margin-bottom: 10px;

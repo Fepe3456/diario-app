@@ -2,11 +2,16 @@
   sezione.js
   ----------
   Gestisce tutta la pagina sezione.html: capire quale sezione mostrare,
-  passare tra Attività/Note, passare tra elenco/calendario, e aprire i
-  post-it per vedere/modificare/creare attività e note.
+  passare tra Attività / Eventi / Note, passare tra elenco e calendario,
+  e aprire i post-it per vedere/modificare/creare attività, eventi e note.
 
   Le funzioni di lettura/scrittura dati (getAttivita, salvaAttivita, ecc.)
   vengono da storage.js, incluso prima di questo file in sezione.html.
+
+  Attività ed eventi vivono nello stesso "magazzino" (diario_attivita) e si
+  distinguono dal campo "tipo". Differenze:
+    - attività: una data (scadenza) e uno stato (da svolgere / svolta)
+    - evento:   una data di inizio e una di fine, nessuno stato
 */
 
 /* ---------------------------------------------------------
@@ -18,28 +23,41 @@ const sezioneCorrente = parametri.get('nome') === 'personale' ? 'personale' : 's
 
 const NOMI_SEZIONE = { scuola: 'Scuola', personale: 'Personale' };
 
+// Materie selezionabili (solo nella sezione Scuola). Per aggiungerne una, basta inserirla qui.
+const MATERIE = [
+  'Italiano', 'Storia', 'Matematica', 'Informatica', 'TPSIT',
+  'GPOI', 'Sistemi e reti', 'Inglese', 'Motoria', 'Religione'
+];
+
 document.body.classList.add(sezioneCorrente === 'scuola' ? 'tema-scuola' : 'tema-personale');
 document.getElementById('nome-sezione-titolo').textContent = NOMI_SEZIONE[sezioneCorrente];
 
 /* ---------------------------------------------------------
-   2. SOTTO-TAB: Attività <-> Note
+   2. SOTTO-TAB: Attività <-> Eventi <-> Note
    --------------------------------------------------------- */
 const tabAttivita = document.getElementById('tab-attivita');
+const tabEventi = document.getElementById('tab-eventi');
 const tabNote = document.getElementById('tab-note');
 const pannelloAttivita = document.getElementById('pannello-attivita');
+const pannelloEventi = document.getElementById('pannello-eventi');
 const pannelloNote = document.getElementById('pannello-note');
 
 tabAttivita.addEventListener('click', () => mostraSottoTab('attivita'));
+tabEventi.addEventListener('click', () => mostraSottoTab('eventi'));
 tabNote.addEventListener('click', () => mostraSottoTab('note'));
 
 function mostraSottoTab(nome) {
-  const inAttivita = nome === 'attivita';
-  tabAttivita.classList.toggle('attivo', inAttivita);
-  tabNote.classList.toggle('attivo', !inAttivita);
-  pannelloAttivita.hidden = !inAttivita;
-  pannelloNote.hidden = inAttivita;
-  if (inAttivita) {
-    renderElencoAttivita();
+  tabAttivita.classList.toggle('attivo', nome === 'attivita');
+  tabEventi.classList.toggle('attivo', nome === 'eventi');
+  tabNote.classList.toggle('attivo', nome === 'note');
+  pannelloAttivita.hidden = nome !== 'attivita';
+  pannelloEventi.hidden = nome !== 'eventi';
+  pannelloNote.hidden = nome !== 'note';
+
+  if (nome === 'attivita') {
+    aggiornaViste();
+  } else if (nome === 'eventi') {
+    renderEventi();
   } else {
     renderElencoNote();
   }
@@ -62,18 +80,34 @@ function mostraVistaAttivita(nome) {
   btnVistaCalendario.classList.toggle('attivo', !inElenco);
   vistaElencoAttivita.hidden = !inElenco;
   vistaCalendarioAttivita.hidden = inElenco;
-  if (inElenco) {
-    renderElencoAttivita();
-  } else {
-    renderCalendario();
+  aggiornaViste();
+}
+
+// Ridisegna le viste attualmente visibili (da chiamare dopo ogni salvataggio/modifica/eliminazione)
+function aggiornaViste() {
+  if (!pannelloAttivita.hidden) {
+    if (vistaCalendarioAttivita.hidden) {
+      renderElencoAttivita();
+    } else {
+      renderCalendario();
+    }
+  }
+  if (!pannelloEventi.hidden) {
+    renderEventi();
   }
 }
 
 /* ---------------------------------------------------------
    4. HELPER PER LE DATE
    --------------------------------------------------------- */
+
+// Data di oggi nel fuso orario del dispositivo, formato AAAA-MM-GG.
+// (toISOString() userebbe l'ora UTC e fra mezzanotte e le 2 darebbe il giorno prima)
 function oggiISO() {
-  return new Date().toISOString().slice(0, 10); // "2026-09-23"
+  const d = new Date();
+  const mese = String(d.getMonth() + 1).padStart(2, '0');
+  const giorno = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mese}-${giorno}`;
 }
 
 function formattaDataBreve(dataISO) {
@@ -87,11 +121,94 @@ function formattaDataLunga(dataISO) {
   return testo.charAt(0).toUpperCase() + testo.slice(1);
 }
 
+// "12 ott" per le attività; "12 ott → 15 ott" per gli eventi su più giorni
+function formattaDataRiga(voce) {
+  if (voce.tipo === 'evento' && voce.dataFine !== voce.data) {
+    return `${formattaDataBreve(voce.data)} → ${formattaDataBreve(voce.dataFine)}`;
+  }
+  return formattaDataBreve(voce.data);
+}
+
 /* ---------------------------------------------------------
-   5. RENDER: ELENCO ATTIVITÀ
+   5. RIGA DELL'ELENCO (usata per attività ed eventi)
+   --------------------------------------------------------- */
+function creaRiga(voce) {
+  const eEvento = voce.tipo === 'evento';
+  const svolta = !eEvento && voce.stato === 'svolta';
+  const nomeTipo = eEvento ? 'evento' : 'attività';
+
+  const riga = document.createElement('div');
+  riga.className = 'riga-elemento' + (svolta ? ' svolta' : '');
+  riga.tabIndex = 0;
+  riga.setAttribute('role', 'button');
+
+  const checkHtml = eEvento ? '' : `
+    <button class="check-stato${svolta ? ' spuntata' : ''}" data-azione="stato"
+            aria-pressed="${svolta}"
+            aria-label="${svolta ? 'Segna come da svolgere' : 'Segna come svolta'}"
+            title="${svolta ? 'Segna come da svolgere' : 'Segna come svolta'}">${svolta ? '✓' : ''}</button>`;
+
+  const materiaHtml = voce.materia ? `<span class="tag-materia">${escapeHtml(voce.materia)}</span>` : '';
+
+  riga.innerHTML = `
+    ${checkHtml}
+    <span class="data-riga${eEvento ? ' data-riga-larga' : ''}">${formattaDataRiga(voce)}</span>
+    <span class="titolo-riga">${escapeHtml(voce.titolo)} ${materiaHtml}</span>
+    <span class="estratto-riga">${voce.ora || ''}</span>
+    <span class="azioni-riga">
+      <button class="icona-azione" data-azione="modifica" aria-label="Modifica ${nomeTipo}" title="Modifica">✏️</button>
+      <button class="icona-azione" data-azione="elimina" aria-label="Elimina ${nomeTipo}" title="Elimina">🗑️</button>
+    </span>
+  `;
+
+  // Spunta "svolta / da svolgere": cambia lo stato senza eliminare nulla
+  const bottoneStato = riga.querySelector('[data-azione="stato"]');
+  if (bottoneStato) {
+    bottoneStato.addEventListener('click', (evento) => {
+      evento.stopPropagation();
+      cambiaStato(voce.id);
+    });
+  }
+
+  riga.querySelector('[data-azione="modifica"]').addEventListener('click', (evento) => {
+    evento.stopPropagation();
+    apriModaleModificaDiretta(voce.id);
+  });
+  riga.querySelector('[data-azione="elimina"]').addEventListener('click', (evento) => {
+    evento.stopPropagation();
+    if (!confirm(eEvento ? 'Eliminare questo evento?' : 'Eliminare questa attività?')) return;
+    eliminaAttivita(voce.id);
+    aggiornaViste();
+  });
+
+  // Click sul resto della riga: apre il post-it in sola visualizzazione
+  riga.addEventListener('click', () => apriModaleVisualizza(voce.id));
+  riga.addEventListener('keydown', (evento) => {
+    if (evento.target !== riga) return; // ignora i tasti premuti sui pulsanti interni
+    if (evento.key === 'Enter' || evento.key === ' ') {
+      evento.preventDefault();
+      apriModaleVisualizza(voce.id);
+    }
+  });
+
+  return riga;
+}
+
+function cambiaStato(id) {
+  const voce = getAttivitaPerId(id);
+  if (!voce || voce.tipo !== 'attivita') return;
+  voce.stato = voce.stato === 'svolta' ? 'da_svolgere' : 'svolta';
+  salvaAttivita(voce);
+  aggiornaViste();
+}
+
+/* ---------------------------------------------------------
+   6. RENDER: ELENCO ATTIVITÀ (solo attività, non eventi)
+   Le "da svolgere" stanno in alto, quelle "svolte" in fondo:
+   restano visibili (barrate), non vengono eliminate.
    --------------------------------------------------------- */
 function renderElencoAttivita() {
-  const attivita = getAttivita(sezioneCorrente);
+  const attivita = getAttivita(sezioneCorrente).filter(v => v.tipo === 'attivita');
   vistaElencoAttivita.innerHTML = '';
 
   if (attivita.length === 0) {
@@ -99,48 +216,65 @@ function renderElencoAttivita() {
     return;
   }
 
-  attivita.forEach(a => {
-    const riga = document.createElement('div');
-    riga.className = 'riga-elemento';
-    riga.tabIndex = 0;
-    riga.setAttribute('role', 'button');
-    riga.innerHTML = `
-      <span class="data-riga">${formattaDataBreve(a.data)}</span>
-      <span class="titolo-riga">${escapeHtml(a.titolo)}</span>
-      <span class="estratto-riga">${a.ora || ''}</span>
-      <span class="azioni-riga">
-        <button class="icona-azione" data-azione="modifica" aria-label="Modifica attività" title="Modifica">✏️</button>
-        <button class="icona-azione" data-azione="elimina" aria-label="Elimina attività" title="Elimina">🗑️</button>
-      </span>
-    `;
+  const daSvolgere = attivita.filter(a => a.stato !== 'svolta');
+  const svolte = attivita.filter(a => a.stato === 'svolta');
 
-    // Click sui due pulsantini: agiscono subito, senza aprire il post-it
-    riga.querySelector('[data-azione="modifica"]').addEventListener('click', (evento) => {
-      evento.stopPropagation();
-      apriModaleAttivitaModificaDiretta(a.id);
-    });
-    riga.querySelector('[data-azione="elimina"]').addEventListener('click', (evento) => {
-      evento.stopPropagation();
-      if (!confirm('Eliminare questa attività?')) return;
-      eliminaAttivita(a.id);
-      renderElencoAttivita();
-    });
-
-    // Click sul resto della riga: apre il post-it in sola visualizzazione
-    riga.addEventListener('click', () => apriModaleAttivitaVisualizza(a.id));
-    riga.addEventListener('keydown', (evento) => {
-      if (evento.key === 'Enter' || evento.key === ' ') {
-        evento.preventDefault();
-        apriModaleAttivitaVisualizza(a.id);
-      }
-    });
-
-    vistaElencoAttivita.appendChild(riga);
-  });
+  daSvolgere.concat(svolte).forEach(a => vistaElencoAttivita.appendChild(creaRiga(a)));
 }
 
 /* ---------------------------------------------------------
-   6. RENDER: VISTA CALENDARIO
+   7. RENDER: EVENTI (in corso / futuri / passati)
+   "In corso" = oggi cade tra la data di inizio e quella di fine (estremi inclusi)
+   --------------------------------------------------------- */
+function renderEventi() {
+  const contenitore = document.getElementById('vista-eventi');
+  contenitore.innerHTML = '';
+
+  const oggi = oggiISO();
+  const eventi = getAttivita(sezioneCorrente).filter(v => v.tipo === 'evento');
+
+  const inCorso = eventi.filter(e => e.data <= oggi && e.dataFine >= oggi);
+  const futuri = eventi.filter(e => e.data > oggi);
+  const passati = eventi.filter(e => e.dataFine < oggi).reverse(); // dal più recente
+
+  if (eventi.length === 0) {
+    contenitore.innerHTML = '<p class="messaggio-vuoto">Nessun evento. Creane uno con "+ Nuovo evento".</p>';
+    return;
+  }
+
+  aggiungiGruppoEventi(contenitore, 'In corso', inCorso, 'Nessun evento in corso.');
+  aggiungiGruppoEventi(contenitore, 'Futuri', futuri, 'Nessun evento futuro.');
+
+  if (passati.length > 0) {
+    const dettagli = document.createElement('details');
+    dettagli.className = 'gruppo-passati';
+    const sommario = document.createElement('summary');
+    sommario.textContent = `Passati (${passati.length})`;
+    dettagli.appendChild(sommario);
+    passati.forEach(e => dettagli.appendChild(creaRiga(e)));
+    contenitore.appendChild(dettagli);
+  }
+}
+
+function aggiungiGruppoEventi(contenitore, titolo, lista, messaggioVuoto) {
+  const intestazione = document.createElement('h2');
+  intestazione.className = 'titolo-gruppo';
+  intestazione.textContent = titolo;
+  contenitore.appendChild(intestazione);
+
+  if (lista.length === 0) {
+    const vuoto = document.createElement('p');
+    vuoto.className = 'messaggio-vuoto';
+    vuoto.textContent = messaggioVuoto;
+    contenitore.appendChild(vuoto);
+    return;
+  }
+  lista.forEach(e => contenitore.appendChild(creaRiga(e)));
+}
+
+/* ---------------------------------------------------------
+   8. RENDER: VISTA CALENDARIO (attività ed eventi insieme)
+   Un evento compare in tutti i giorni tra inizio e fine.
    --------------------------------------------------------- */
 let meseCorrente = new Date().getMonth();
 let annoCorrente = new Date().getFullYear();
@@ -164,6 +298,14 @@ function primoGiornoSettimana(anno, mese) {
   return giorno === 0 ? 6 : giorno - 1; // 0 = lunedì ... 6 = domenica
 }
 
+// Questa voce cade nel giorno indicato?
+function voceCadeNelGiorno(voce, dataISO) {
+  if (voce.tipo === 'evento') {
+    return voce.data <= dataISO && voce.dataFine >= dataISO;
+  }
+  return voce.data === dataISO;
+}
+
 function renderCalendario() {
   const etichetta = new Date(annoCorrente, meseCorrente, 1)
     .toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
@@ -173,9 +315,10 @@ function renderCalendario() {
   const griglia = document.getElementById('griglia-calendario');
   griglia.innerHTML = '';
 
-  const attivitaDelMese = getAttivita(sezioneCorrente);
+  const tutteLeVoci = getAttivita(sezioneCorrente);
   const celleVuote = primoGiornoSettimana(annoCorrente, meseCorrente);
   const totaleGiorni = giorniNelMese(annoCorrente, meseCorrente);
+  const oggi = oggiISO();
 
   for (let i = 0; i < celleVuote; i++) {
     const vuota = document.createElement('div');
@@ -189,35 +332,40 @@ function renderCalendario() {
     const dataISO = `${annoCorrente}-${meseStr}-${giornoStr}`;
 
     const cella = document.createElement('div');
-    cella.className = 'cella-giorno';
+    cella.className = 'cella-giorno' + (dataISO === oggi ? ' oggi' : '');
 
     const numero = document.createElement('span');
     numero.className = 'numero-giorno';
     numero.textContent = giorno;
     cella.appendChild(numero);
 
-    attivitaDelMese
-      .filter(a => a.data === dataISO)
-      .forEach(a => {
+    // Prima gli eventi, poi le attività
+    tutteLeVoci
+      .filter(v => voceCadeNelGiorno(v, dataISO))
+      .sort((a, b) => (a.tipo === b.tipo ? 0 : a.tipo === 'evento' ? -1 : 1))
+      .forEach(v => {
         const chip = document.createElement('button');
-        chip.className = 'chip-attivita';
-        chip.textContent = a.titolo;
+        chip.className = 'chip-attivita'
+          + (v.tipo === 'evento' ? ' chip-evento' : '')
+          + (v.tipo === 'attivita' && v.stato === 'svolta' ? ' svolta' : '');
+        chip.textContent = v.titolo;
+        chip.title = v.titolo;
         chip.addEventListener('click', (evento) => {
           evento.stopPropagation(); // non deve attivare anche il click sulla cella
-          apriModaleAttivitaVisualizza(a.id);
+          apriModaleVisualizza(v.id);
         });
         cella.appendChild(chip);
       });
 
     // Cliccando su una cella vuota (non su un chip) si crea una nuova attività con quella data già scelta
-    cella.addEventListener('click', () => apriNuovaAttivita(dataISO));
+    cella.addEventListener('click', () => apriNuovaVoce('attivita', dataISO));
 
     griglia.appendChild(cella);
   }
 }
 
 /* ---------------------------------------------------------
-   7. RENDER: ELENCO NOTE
+   9. RENDER: ELENCO NOTE
    --------------------------------------------------------- */
 function renderElencoNote() {
   const note = getNote(sezioneCorrente);
@@ -242,35 +390,77 @@ function renderElencoNote() {
 }
 
 /* ---------------------------------------------------------
-   8. MODALE ATTIVITÀ (post-it)
+   10. MODALE ATTIVITÀ / EVENTO (post-it)
+   Lo stesso post-it serve per entrambi: cambiano i campi mostrati.
    --------------------------------------------------------- */
 const sfondoModaleAttivita = document.getElementById('sfondo-modale-attivita');
 const vistaDettaglioAttivita = document.getElementById('vista-dettaglio-attivita');
 const formAttivita = document.getElementById('form-attivita');
 const btnModificaAttivita = document.getElementById('btn-modifica-attivita');
 const btnEliminaAttivita = document.getElementById('btn-elimina-attivita');
+const btnToggleStato = document.getElementById('btn-toggle-stato');
+const selectMateria = document.getElementById('input-attivita-materia');
 
-let idAttivitaCorrente = null; // null = stiamo creando una nuova attività
+let idAttivitaCorrente = null;   // null = stiamo creando una nuova voce
+let tipoCorrente = 'attivita';   // 'attivita' | 'evento'
 
-document.getElementById('btn-nuova-attivita').addEventListener('click', () => apriNuovaAttivita());
+// Riempie il menu a tendina delle materie (una volta sola)
+selectMateria.innerHTML = '<option value="">— Nessuna —</option>' +
+  MATERIE.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+
+document.getElementById('btn-nuova-attivita').addEventListener('click', () => apriNuovaVoce('attivita'));
+document.getElementById('btn-nuovo-evento').addEventListener('click', () => apriNuovaVoce('evento'));
 document.getElementById('btn-chiudi-attivita').addEventListener('click', chiudiModaleAttivita);
-btnModificaAttivita.addEventListener('click', passaAModificaAttivita);
-btnEliminaAttivita.addEventListener('click', eliminaAttivitaCorrenteEChiudi);
+btnModificaAttivita.addEventListener('click', passaAModifica);
+btnEliminaAttivita.addEventListener('click', eliminaVoceCorrenteEChiudi);
+btnToggleStato.addEventListener('click', () => {
+  cambiaStato(idAttivitaCorrente);
+  apriModaleVisualizza(idAttivitaCorrente); // ridisegna il post-it con il nuovo stato
+});
 formAttivita.addEventListener('submit', salvaFormAttivita);
 
-function apriModaleAttivitaVisualizza(id) {
+// Mostra/nasconde i campi del form in base al tipo (attività o evento) e alla sezione
+function impostaTipoForm(tipo) {
+  tipoCorrente = tipo;
+  const eEvento = tipo === 'evento';
+
+  document.getElementById('label-attivita-data').textContent = eEvento ? 'Data di inizio' : 'Data';
+  document.getElementById('gruppo-data-fine').hidden = !eEvento;
+  document.getElementById('gruppo-materia').hidden = sezioneCorrente !== 'scuola';
+  document.getElementById('btn-salva-attivita').textContent = eEvento ? 'Salva evento' : 'Salva attività';
+}
+
+function apriModaleVisualizza(id) {
   const dati = getAttivitaPerId(id);
   if (!dati) return;
   idAttivitaCorrente = id;
+  tipoCorrente = dati.tipo;
+  const eEvento = dati.tipo === 'evento';
+
+  const badge = document.getElementById('dettaglio-attivita-tipo');
+  badge.textContent = eEvento ? 'Evento' : (dati.stato === 'svolta' ? 'Attività · svolta' : 'Attività · da svolgere');
 
   document.getElementById('dettaglio-attivita-titolo').textContent = dati.titolo;
-  document.getElementById('dettaglio-attivita-data').textContent = formattaDataLunga(dati.data);
+
+  document.getElementById('dettaglio-attivita-etichetta-data').textContent = eEvento ? 'Periodo' : 'Data';
+  document.getElementById('dettaglio-attivita-data').textContent =
+    eEvento && dati.dataFine !== dati.data
+      ? `Dal ${formattaDataLunga(dati.data)} al ${formattaDataLunga(dati.dataFine)}`
+      : formattaDataLunga(dati.data);
 
   const rigaOra = document.getElementById('riga-dettaglio-ora');
   rigaOra.hidden = !dati.ora;
   document.getElementById('dettaglio-attivita-ora').textContent = dati.ora || '';
 
+  const rigaMateria = document.getElementById('riga-dettaglio-materia');
+  rigaMateria.hidden = !dati.materia;
+  document.getElementById('dettaglio-attivita-materia').textContent = dati.materia || '';
+
   document.getElementById('dettaglio-attivita-note').textContent = dati.note || '—';
+
+  // Il pulsante stato esiste solo per le attività
+  btnToggleStato.hidden = eEvento;
+  btnToggleStato.textContent = dati.stato === 'svolta' ? 'Segna come da svolgere' : 'Segna come svolta';
 
   vistaDettaglioAttivita.hidden = false;
   formAttivita.hidden = true;
@@ -279,14 +469,18 @@ function apriModaleAttivitaVisualizza(id) {
   sfondoModaleAttivita.hidden = false;
 }
 
-function passaAModificaAttivita() {
+function passaAModifica() {
   const dati = getAttivitaPerId(idAttivitaCorrente);
   if (!dati) return;
+  impostaTipoForm(dati.tipo);
 
-  document.getElementById('form-attivita-intestazione').textContent = 'Modifica attività';
+  document.getElementById('form-attivita-intestazione').textContent =
+    dati.tipo === 'evento' ? 'Modifica evento' : 'Modifica attività';
   document.getElementById('input-attivita-titolo').value = dati.titolo;
   document.getElementById('input-attivita-data').value = dati.data;
+  document.getElementById('input-attivita-data-fine').value = dati.dataFine || dati.data;
   document.getElementById('input-attivita-ora').value = dati.ora || '';
+  selectMateria.value = dati.materia || '';
   document.getElementById('input-attivita-note').value = dati.note || '';
 
   vistaDettaglioAttivita.hidden = true;
@@ -297,19 +491,24 @@ function passaAModificaAttivita() {
 
 // Usata dal pulsante ✏️ nella riga: apre il post-it già pronto per la modifica,
 // saltando il passaggio di sola visualizzazione
-function apriModaleAttivitaModificaDiretta(id) {
+function apriModaleModificaDiretta(id) {
   idAttivitaCorrente = id;
   sfondoModaleAttivita.hidden = false;
-  passaAModificaAttivita();
+  passaAModifica();
 }
 
-function apriNuovaAttivita(dataPreimpostata) {
+function apriNuovaVoce(tipo, dataPreimpostata) {
   idAttivitaCorrente = null;
+  impostaTipoForm(tipo);
 
-  document.getElementById('form-attivita-intestazione').textContent = 'Nuova attività';
+  const data = dataPreimpostata || oggiISO();
+  document.getElementById('form-attivita-intestazione').textContent =
+    tipo === 'evento' ? 'Nuovo evento' : 'Nuova attività';
   document.getElementById('input-attivita-titolo').value = '';
-  document.getElementById('input-attivita-data').value = dataPreimpostata || oggiISO();
+  document.getElementById('input-attivita-data').value = data;
+  document.getElementById('input-attivita-data-fine').value = data;
   document.getElementById('input-attivita-ora').value = '';
+  selectMateria.value = '';
   document.getElementById('input-attivita-note').value = '';
 
   vistaDettaglioAttivita.hidden = true;
@@ -323,28 +522,46 @@ function apriNuovaAttivita(dataPreimpostata) {
 function salvaFormAttivita(evento) {
   evento.preventDefault();
 
-  const attivita = {
+  const esistente = idAttivitaCorrente ? getAttivitaPerId(idAttivitaCorrente) : null;
+  const data = document.getElementById('input-attivita-data').value;
+
+  const voce = {
     id: idAttivitaCorrente,
     sezione: sezioneCorrente,
+    tipo: tipoCorrente,
     titolo: document.getElementById('input-attivita-titolo').value.trim(),
-    data: document.getElementById('input-attivita-data').value,
+    data: data,
     ora: document.getElementById('input-attivita-ora').value,
+    materia: sezioneCorrente === 'scuola' ? selectMateria.value : '',
     note: document.getElementById('input-attivita-note').value.trim()
   };
 
-  if (!attivita.titolo || !attivita.data) return; // il browser già blocca grazie a "required"
+  if (!voce.titolo || !voce.data) return; // il browser già blocca grazie a "required"
 
-  salvaAttivita(attivita);
+  if (tipoCorrente === 'evento') {
+    const dataFine = document.getElementById('input-attivita-data-fine').value || data;
+    if (dataFine < data) {
+      alert('La data di fine non può essere precedente a quella di inizio.');
+      return;
+    }
+    voce.dataFine = dataFine;
+  } else {
+    // In modifica si conserva lo stato già scelto; una nuova attività parte "da svolgere"
+    voce.stato = esistente ? esistente.stato : 'da_svolgere';
+  }
+
+  salvaAttivita(voce);
   chiudiModaleAttivita();
-  aggiornaVistaAttivitaCorrente();
+  aggiornaViste();
 }
 
-function eliminaAttivitaCorrenteEChiudi() {
+function eliminaVoceCorrenteEChiudi() {
   if (!idAttivitaCorrente) return;
-  if (!confirm('Eliminare questa attività?')) return;
+  const domanda = tipoCorrente === 'evento' ? 'Eliminare questo evento?' : 'Eliminare questa attività?';
+  if (!confirm(domanda)) return;
   eliminaAttivita(idAttivitaCorrente);
   chiudiModaleAttivita();
-  aggiornaVistaAttivitaCorrente();
+  aggiornaViste();
 }
 
 function chiudiModaleAttivita() {
@@ -352,17 +569,8 @@ function chiudiModaleAttivita() {
   idAttivitaCorrente = null;
 }
 
-function aggiornaVistaAttivitaCorrente() {
-  // Dopo aver salvato/eliminato, ridisegniamo qualunque vista sia attiva ora
-  if (vistaCalendarioAttivita.hidden) {
-    renderElencoAttivita();
-  } else {
-    renderCalendario();
-  }
-}
-
 /* ---------------------------------------------------------
-   9. MODALE NOTA (post-it)
+   11. MODALE NOTA (post-it)
    --------------------------------------------------------- */
 const sfondoModaleNota = document.getElementById('sfondo-modale-nota');
 const vistaDettaglioNota = document.getElementById('vista-dettaglio-nota');
@@ -453,7 +661,7 @@ function chiudiModaleNota() {
 }
 
 /* ---------------------------------------------------------
-   10. HELPER: evitare che titoli/note con < o > rompano l'HTML
+   12. HELPER: evitare che titoli/note con < o > rompano l'HTML
    --------------------------------------------------------- */
 function escapeHtml(testo) {
   const div = document.createElement('div');
@@ -462,6 +670,6 @@ function escapeHtml(testo) {
 }
 
 /* ---------------------------------------------------------
-   11. AVVIO: disegniamo l'elenco attività appena la pagina carica
+   13. AVVIO: disegniamo l'elenco attività appena la pagina carica
    --------------------------------------------------------- */
 renderElencoAttivita();
