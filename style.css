@@ -294,6 +294,18 @@ body.tema-personale .check-stato.spuntata { background: var(--color-personale); 
 }
 .titolo-gruppo:first-child { margin-top: 0; }
 
+/* Attività non svolta con la scadenza già passata */
+.riga-elemento.scaduta .data-riga {
+  color: #B3402F;
+  font-weight: 600;
+}
+
+.nota-gruppo {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+}
+
 .gruppo-passati { margin-top: 24px; }
 .gruppo-passati summary {
   cursor: pointer;

@@ -61,6 +61,28 @@ function normalizzaVoce(v) {
   return voce;
 }
 
+// Giorni che separano oggi da una data AAAA-MM-GG: 0 = oggi, 3 = fra tre giorni, -2 = due giorni fa
+function giorniDa(dataISO) {
+  const [a, m, g] = dataISO.split('-').map(Number);
+  const oggi = new Date();
+  const daOggi = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate());
+  return Math.round((new Date(a, m - 1, g) - daOggi) / 86400000);
+}
+
+// Dopo quanti giorni dalla scadenza un'attività SVOLTA viene eliminata da sola
+const GIORNI_PRIMA_DELL_ELIMINAZIONE = 3;
+
+// Elimina le attività svolte la cui scadenza è passata da più di 3 giorni.
+// Non tocca le attività ancora da svolgere né gli eventi. Restituisce quante ne ha eliminate.
+function eliminaSvolteScadute() {
+  const tutte = leggiTutte(CHIAVE_ATTIVITA);
+  const rimaste = tutte.filter(v =>
+    !(v.tipo !== 'evento' && v.stato === 'svolta' && giorniDa(v.data) < -GIORNI_PRIMA_DELL_ELIMINAZIONE)
+  );
+  if (rimaste.length !== tutte.length) scriviTutte(CHIAVE_ATTIVITA, rimaste);
+  return tutte.length - rimaste.length;
+}
+
 // Restituisce tutte le voci (attività ed eventi) di una sezione, ordinate per data (e ora)
 function getAttivita(sezione) {
   return leggiTutte(CHIAVE_ATTIVITA)

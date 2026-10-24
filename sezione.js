@@ -23,6 +23,9 @@ const sezioneCorrente = parametri.get('nome') === 'personale' ? 'personale' : 's
 
 const NOMI_SEZIONE = { scuola: 'Scuola', personale: 'Personale' };
 
+// Un'attività è "vicina" se la sua data dista meno di questi giorni da oggi
+const GIORNI_VICINE = 7;
+
 // Materie selezionabili (solo nella sezione Scuola). Per aggiungerne una, basta inserirla qui.
 const MATERIE = [
   'Italiano', 'Storia', 'Matematica', 'Informatica', 'TPSIT',
@@ -138,7 +141,8 @@ function creaRiga(voce) {
   const nomeTipo = eEvento ? 'evento' : 'attività';
 
   const riga = document.createElement('div');
-  riga.className = 'riga-elemento' + (svolta ? ' svolta' : '');
+  const scaduta = !eEvento && !svolta && giorniDa(voce.data) < 0;
+  riga.className = 'riga-elemento' + (svolta ? ' svolta' : '') + (scaduta ? ' scaduta' : '');
   riga.tabIndex = 0;
   riga.setAttribute('role', 'button');
 
@@ -216,10 +220,29 @@ function renderElencoAttivita() {
     return;
   }
 
-  const daSvolgere = attivita.filter(a => a.stato !== 'svolta');
-  const svolte = attivita.filter(a => a.stato === 'svolta');
+  // Completate = svolte con la scadenza già passata (restano 3 giorni, poi sono eliminate)
+  const completate = attivita.filter(a => a.stato === 'svolta' && giorniDa(a.data) < 0).reverse();
+  const attive = attivita.filter(a => !completate.includes(a));
+  // Vicine = a meno di 7 giorni da oggi; ci stanno anche le non svolte già scadute
+  const vicine = attive.filter(a => giorniDa(a.data) < GIORNI_VICINE);
+  const piuAvanti = attive.filter(a => giorniDa(a.data) >= GIORNI_VICINE);
 
-  daSvolgere.concat(svolte).forEach(a => vistaElencoAttivita.appendChild(creaRiga(a)));
+  aggiungiGruppoEventi(vistaElencoAttivita, 'Vicine (entro 7 giorni)', vicine, 'Nessuna attività vicina.');
+  aggiungiGruppoEventi(vistaElencoAttivita, 'Più avanti', piuAvanti, 'Nessuna attività più avanti.');
+
+  if (completate.length > 0) {
+    const dettagli = document.createElement('details');
+    dettagli.className = 'gruppo-passati';
+    const sommario = document.createElement('summary');
+    sommario.textContent = `Completate (${completate.length})`;
+    dettagli.appendChild(sommario);
+    const avviso = document.createElement('p');
+    avviso.className = 'nota-gruppo';
+    avviso.textContent = `Vengono eliminate ${GIORNI_PRIMA_DELL_ELIMINAZIONE} giorni dopo la scadenza.`;
+    dettagli.appendChild(avviso);
+    completate.forEach(a => dettagli.appendChild(creaRiga(a)));
+    vistaElencoAttivita.appendChild(dettagli);
+  }
 }
 
 /* ---------------------------------------------------------
@@ -670,6 +693,8 @@ function escapeHtml(testo) {
 }
 
 /* ---------------------------------------------------------
-   13. AVVIO: disegniamo l'elenco attività appena la pagina carica
+   13. AVVIO: puliamo le attività svolte scadute da più di 3 giorni,
+   poi disegniamo l'elenco attività
    --------------------------------------------------------- */
+eliminaSvolteScadute();
 renderElencoAttivita();
